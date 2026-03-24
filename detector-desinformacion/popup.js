@@ -7,7 +7,7 @@ const badgeToggle = document.getElementById('badge-toggle');
 const autohideToggle = document.getElementById('autohide-toggle');
 const langToggle = document.getElementById('lang-toggle');
 
-const defaultSettings = { notifications: true, showBadge: true, autoHideSafe: false, multiLang: true };
+const defaultSettings = { notifications: true, showBadge: true, autoHideSafe: false, multiLang: true, trustedSites: [] };
 
 settingsBtn.addEventListener('click', () => { settingsPanel.style.display = 'block'; });
 closeSettings.addEventListener('click', () => { 
@@ -28,13 +28,17 @@ chrome.storage.local.get(['settings'], (data) => {
 });
 
 // Save Settings helper
-function saveSettings() {
-  chrome.storage.local.set({ settings: {
-    notifications: notifToggle.checked,
-    showBadge: badgeToggle.checked,
-    autoHideSafe: autohideToggle.checked,
-    multiLang: langToggle.checked
-  }});
+function saveSettings(latestSettings = null) {
+  chrome.storage.local.get(['settings'], (data) => {
+    let currentSettings = data.settings || defaultSettings;
+    chrome.storage.local.set({ settings: {
+      notifications: latestSettings !== null && latestSettings.notifications !== undefined ? latestSettings.notifications : notifToggle.checked,
+      showBadge: latestSettings !== null && latestSettings.showBadge !== undefined ? latestSettings.showBadge : badgeToggle.checked,
+      autoHideSafe: latestSettings !== null && latestSettings.autoHideSafe !== undefined ? latestSettings.autoHideSafe : autohideToggle.checked,
+      multiLang: latestSettings !== null && latestSettings.multiLang !== undefined ? latestSettings.multiLang : langToggle.checked,
+      trustedSites: currentSettings.trustedSites || []
+    }});
+  });
 }
 
 notifToggle.addEventListener('change', saveSettings);
@@ -42,11 +46,12 @@ badgeToggle.addEventListener('change', saveSettings);
 autohideToggle.addEventListener('change', saveSettings);
 langToggle.addEventListener('change', saveSettings);
 
-let currentTabIdStr;
+let currentDomain = null;
 
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   if (!tabs || tabs.length === 0) return;
   currentTabIdStr = tabs[0].id.toString();
+  try { currentDomain = new URL(tabs[0].url).hostname.replace('www.', ''); } catch(e) {}
   
   chrome.storage.local.get([currentTabIdStr], (data) => {
     const result = data[currentTabIdStr];
@@ -139,7 +144,7 @@ function renderResult(result) {
 
       ${result.warnings && result.warnings.length > 0 ? `
       <div class="info-card glass" style="border-left: 3px solid var(--danger); background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%); animation-delay: 0.3s;">
-        <h3 style="color: #fca5a5;">
+        <h3 style="color: #fca5a5; display: flex; align-items: center; gap: 6px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           Alertas de Contenido
         </h3>
@@ -149,12 +154,53 @@ function renderResult(result) {
       </div>
       ` : ''}
 
+      ${currentDomain ? `
+      <div class="info-card glass" style="animation-delay: 0.4s; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px;">
+        <div style="display:flex; flex-direction: column;">
+           <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">Sitio de Confianza</span>
+           <span style="font-size: 11px; color: var(--text-muted); text-transform: lowercase;">${currentDomain}</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="trust-domain-toggle">
+          <span class="slider round"></span>
+        </label>
+      </div>` : ''}
+
       <div style="text-align: center; margin-top: 12px; opacity: 0.4;">
         <p style="font-size: 11px; margin:0; font-weight: 600; letter-spacing: 0.5px;">VERIFICACIÓN LOCAL - INFOCHECK</p>
       </div>
     `;
 
     animateScore(result.score);
+    
+    if (currentDomain) {
+      const trustToggle = document.getElementById('trust-domain-toggle');
+      if (trustToggle) {
+        chrome.storage.local.get(['settings'], (data) => {
+          const settings = data.settings || defaultSettings;
+          trustToggle.checked = settings.trustedSites && settings.trustedSites.includes(currentDomain);
+        });
+        
+        trustToggle.addEventListener('change', () => {
+          chrome.storage.local.get(['settings'], (data) => {
+            const settings = data.settings || defaultSettings;
+            let sites = settings.trustedSites || [];
+            if (trustToggle.checked) {
+              if (!sites.includes(currentDomain)) sites.push(currentDomain);
+            } else {
+              sites = sites.filter(s => s !== currentDomain);
+            }
+            settings.trustedSites = sites;
+            chrome.storage.local.set({ settings: settings }, () => {
+              // Reload tab to regenerate score
+              chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) chrome.tabs.reload(tabs[0].id);
+              });
+            });
+          });
+        });
+      }
+    }
 }
 
 function animateScore(targetScore) {

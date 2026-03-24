@@ -3,6 +3,11 @@
   "name": "InfoCheck",
   "version": "1.0",
   "description": "Analiza páginas web para detectar sensacionalismo y verifica afirmaciones.",
+  "icons": {
+    "16": "info.png",
+    "48": "info.png",
+    "128": "info.png"
+  },
   "permissions": [
     "activeTab",
     "storage",

@@ -51,18 +51,34 @@ function getKeywords(title, content) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "ANALYZE_PAGE" && sender.tab) {
-    handleAnalysis(request.data, sender.tab.id);
+    handleAnalysis(request.data, sender.tab.id, sender.tab.url);
   }
   return true; 
 });
 
-async function handleAnalysis(pageData, tabId) {
+async function handleAnalysis(pageData, tabId, tabUrl) {
   const { title, content } = pageData;
   const tabIdStr = tabId.toString(); 
+  const domain = tabUrl ? new URL(tabUrl).hostname.replace('www.', '') : null;
 
   const storageData = await chrome.storage.local.get(['settings']);
-  const settings = storageData.settings || { notifications: true, showBadge: true, autoHideSafe: false, multiLang: true };
+  const settings = storageData.settings || { notifications: true, showBadge: true, autoHideSafe: false, multiLang: true, trustedSites: [] };
   
+  if (domain && settings.trustedSites && settings.trustedSites.includes(domain)) {
+     const trustedResult = {
+       score: 100,
+       status: "Confiable",
+       color: "#10B981",
+       warnings: [],
+       consensus: "Página añadida a tu lista de sitios seguros.",
+       sourceLinks: []
+     };
+     chrome.storage.local.set({ [tabIdStr]: trustedResult }, () => {
+       chrome.tabs.sendMessage(tabId, { action: "UPDATE_BADGE", result: trustedResult, settings: settings });
+     });
+     return;
+  }
+
   const keywords = getKeywords(title, content);
   const nlpAnalysis = analyzeText(title, content);
   
