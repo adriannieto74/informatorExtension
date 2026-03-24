@@ -61,7 +61,7 @@ async function handleAnalysis(pageData, tabId) {
   const tabIdStr = tabId.toString(); 
 
   const storageData = await chrome.storage.local.get(['settings']);
-  const settings = storageData.settings || { notifications: true, showBadge: true, multiLang: true };
+  const settings = storageData.settings || { notifications: true, showBadge: true, autoHideSafe: false, multiLang: true };
   
   const keywords = getKeywords(title, content);
   const nlpAnalysis = analyzeText(title, content);
@@ -175,7 +175,7 @@ async function handleAnalysis(pageData, tabId) {
     chrome.notifications.create('', {
       type: 'basic',
       iconUrl: base64Icon,
-      title: '⚠️ InfoCheck: ' + status,
+      title: 'InfoCheck: ' + status,
       message: 'Atención: Esta página muestra señales de info-desinformación o falta de consenso.'
     }, () => { const lastErr = chrome.runtime.lastError; }); 
   }

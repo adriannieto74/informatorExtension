@@ -14,7 +14,8 @@ setTimeout(() => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "UPDATE_BADGE") {
-    if (request.settings && request.settings.showBadge === false) {
+    const hideIfSafe = request.settings && request.settings.autoHideSafe === true && request.result.score >= 70;
+    if (request.settings && (request.settings.showBadge === false || hideIfSafe)) {
       const badge = document.getElementById("trust-badge-detector");
       if (badge) badge.remove();
       return;
@@ -33,7 +34,7 @@ function createBadge(result) {
 
   const badgeWrapper = document.createElement("div");
   badgeWrapper.id = "trust-badge-detector";
-  // Premium glassmorphism float style
+  // Premium glassmorphism float style with refined breathing glow
   badgeWrapper.style.cssText = `
     position: fixed; 
     bottom: 30px; 
@@ -42,18 +43,18 @@ function createBadge(result) {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 16px 8px 8px;
+    padding: 8px 18px 8px 8px;
     border-radius: 50px; 
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px -5px ${glowColor}, 0 4px 10px rgba(0,0,0,0.5);
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 40px -5px ${glowColor}, 0 4px 15px rgba(0,0,0,0.6);
     color: white;
     font-family: 'Inter', system-ui, sans-serif;
-    transform: translateY(100px);
+    transform: translateY(100px) scale(0.9);
     opacity: 0;
-    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: help;
   `;
 
@@ -82,7 +83,7 @@ function createBadge(result) {
 
   // Trigger intro animation
   setTimeout(() => {
-    badgeWrapper.style.transform = "translateY(0)";
+    badgeWrapper.style.transform = "translateY(0) scale(1)";
     badgeWrapper.style.opacity = "1";
   }, 100);
 
