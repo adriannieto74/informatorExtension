@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* Toggle switch CSS */
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 24px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 2px; background-color: #94a3b8; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    input:checked + .slider { background-color: var(--success); border-color: transparent; }
+    input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+
+    :root {
+      --bg-color: #020617;
+      --card-bg: rgba(15, 23, 42, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      
+      --glow-success: rgba(16, 185, 129, 0.4);
+      --glow-warning: rgba(245, 158, 11, 0.4);
+      --glow-danger: rgba(239, 68, 68, 0.4);
+    }
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      width: 360px;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-color);
+      color: var(--text-main);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* Animated background orbs */
+    .orb-1 { position: fixed; top: -50px; left: -50px; width: 200px; height: 200px; background: #3b82f6; border-radius: 50%; filter: blur(70px); opacity: 0.4; z-index: 1; animation: drift 10s ease-in-out infinite alternate; }
+    .orb-2 { position: fixed; bottom: -50px; right: -50px; width: 200px; height: 200px; background: #8b5cf6; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: 1; animation: drift 12s ease-in-out infinite alternate-reverse; }
+
+    @keyframes drift { 0% { transform: translate(0,0); } 100% { transform: translate(40px, 30px); } }
+
+    /* Glassmorphism utility */
+    .glass {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      background: rgba(2, 6, 23, 0.6);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-icon {
+      font-size: 24px;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+
+    .container {
+      padding: 24px;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      z-index: 5;
+    }
+
+    /* Settings Overlay */
+    #settings-panel {
+      display: none; 
+      position: fixed; 
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 100; 
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.2s ease-out;
+      overflow-y: auto;
+    }
+    
+    .settings-content {
+       margin: 60px 24px 24px 24px;
+       border-radius: 16px;
+       padding: 20px;
+    }
+    .setting-item {
+       display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color);
+    }
+    .setting-item:last-child { border-bottom: none; }
+    .setting-icon { margin-right: 10px; opacity: 0.8; font-size: 18px; }
+
+    /* Score display */
+    .score-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 12px;
+      animation: zoomIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .score-circle {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,6,23,0.4);
+      border: 4px solid var(--success);
+      box-shadow: 0 0 40px var(--glow-success), inset 0 0 20px rgba(0,0,0,0.6);
+      transition: all 0.5s ease;
+    }
+    
+    .score-circle::after {
+       content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.1);
+       animation: spin 20s linear infinite;
+    }
+
+    .score-value {
+      font-size: 44px;
+      font-weight: 800;
+      line-height: 1;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .score-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0.9;
+      margin-top: 6px;
+    }
+
+    .status-badge {
+      margin-top: -18px;
+      z-index: 2;
+      padding: 6px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      background: var(--success);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border: 2px solid #0f172a;
+    }
+
+    /* Cards */
+    .info-card {
+      border-radius: 16px;
+      padding: 18px;
+      animation: slideUp 0.5s ease-out forwards;
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    .info-card h3 {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-card p, .info-card li {
+      margin: 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .warning-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .warning-list li { color: #fca5a5; }
+
+    /* Links */
+    .source-link {
+       font-size: 11px; font-weight: 500; color: #93c5fd; text-decoration: none; background: rgba(59, 130, 246, 0.15); 
+       padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.2); 
+       transition: all 0.2s; word-break: break-all;
+    }
+    .source-link:hover { background: rgba(59, 130, 246, 0.3); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2); }
+
+    /* Loader */
+    .loader-container {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; gap: 20px;
+    }
+
+    .radar {
+      width: 70px; height: 70px; border-radius: 50%; border: 2px solid rgba(59, 130, 246, 0.2);
+      position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(59, 130, 246, 0.1);
+    }
+    .radar::before {
+      content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 50%;
+      background: linear-gradient(45deg, rgba(59, 130, 246, 0) 0%, rgba(59, 130, 246, 0.8) 100%);
+      transform-origin: 0 0; animation: scan 1.5s linear infinite;
+    }
+    .radar-dot {
+      position: absolute; width: 6px; height: 6px; background: #60a5fa; border-radius: 50%;
+      top: 30%; left: 60%; box-shadow: 0 0 10px #60a5fa; animation: pulse 1.5s infinite;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes scan { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.5); } }
+    @keyframes zoomIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="orb-1"></div>
+  <div class="orb-2"></div>
+
+  <div class="header">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="header-icon">🛡️</span>
+      <h2>InfoCheck</h2>
+    </div>
+    <div id="settings-btn" style="cursor: pointer; opacity: 0.8; transition: all 0.2s; display: flex; align-items: center; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 8px;" title="Ajustes">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </div>
+  </div>
+
+  <div id="settings-panel">
+    <div class="header" style="background: transparent; border: none; padding: 20px 24px;">
+       <h2 style="font-size: 18px;">Ajustes InfoCheck</h2>
+       <div id="close-settings" style="cursor: pointer; opacity: 0.8; padding: 6px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; transition: all 0.2s;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+       </div>
+    </div>
+    
+    <div class="settings-content glass">
+      
+      <div class="setting-item">
+        <div style="display:flex; flex-direction: column;">
+           <span style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;"><span class="setting-icon">🖥️</span> Alertas de Escritorio</span>
+           <span style="font-size: 11px; color: var(--text-muted);">Avisos del sistema (peligros)</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="notif-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div style="display:flex; flex-direction: column;">
+           <span style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;"><span class="setting-icon">👁️</span> Insignia Visual en Web</span>
+           <span style="font-size: 11px; color: var(--text-muted);">Icono en cada página web</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="badge-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div style="display:flex; flex-direction: column;">
+           <span style="font-size: 13.5px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;"><span class="setting-icon">🌐</span> Búsqueda Global (EN+ES)</span>
+           <span style="font-size: 11px; color: var(--text-muted);">Comprueba ambos idiomas</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="lang-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+    </div>
+  </div>
+  
+  <div id="app-content" class="container">
+    <div class="loader-container">
+      <div class="radar">
+        <div class="radar-dot"></div>
+      </div>
+      <p style="font-size: 14px; color: #cbd5e1; font-weight: 500; letter-spacing: 0.5px;">Analizando la red global...</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

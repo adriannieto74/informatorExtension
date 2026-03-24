@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "InfoCheck",
+  "version": "1.0",
+  "description": "Analiza páginas web para detectar sensacionalismo y verifica afirmaciones.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Ver Análisis de Fiabilidad"
+  }
+}
